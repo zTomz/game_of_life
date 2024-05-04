@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:flutter/material.dart';
 import 'package:game_of_life/constants.dart';
 import 'package:game_of_life/models/cell.dart';
@@ -15,15 +17,15 @@ class _GamePageState extends State<GamePage> {
   // ignore: prefer_final_fields
   List<Offset> _lastUpdatedOffsets = [];
 
+  // ignore: prefer_final_fields
+  double _zoomFactor = 1.0;
+
   @override
   void initState() {
     super.initState();
-
+    
     initGame();
   }
-
-  // ignore: prefer_final_fields
-  double _zoomFactor = 1.0;
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +41,8 @@ class _GamePageState extends State<GamePage> {
           ),
           const SizedBox(width: 10),
           FloatingActionButton(
-            onPressed: () {
-              initGame();
-              setState(() {});
+            onPressed: () async {
+              await initGame();
             },
             child: const Icon(Icons.restore_from_trash_rounded),
           ),
@@ -103,7 +104,7 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  void initGame() {
+  static Map<Offset, bool> resetGame() {
     Offset pos = const Offset(-1, 0);
     final generatedList = List.generate(
       kCellCount,
@@ -119,7 +120,14 @@ class _GamePageState extends State<GamePage> {
         );
       },
     );
-    _cells = {for (Cell cell in generatedList) cell.position: cell.alive};
+
+    return {for (Cell cell in generatedList) cell.position: cell.alive};
+  }
+
+  Future<void> initGame() async {
+    _cells = await Isolate.run<Map<Offset, bool>>(() => resetGame());
+
+    setState(() {});
   }
 
   List<Widget> _buildCells() {

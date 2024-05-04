@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:game_of_life/game_page.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MainApp());
 }
 

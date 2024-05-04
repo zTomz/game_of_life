@@ -16,3 +16,8 @@ const int kMaxCellsPerRow = 80;
 
 - Initial commit:
     - Average: 11 FPS
+    - Coding time: Around 1 hour
+    
+- Multithreaded game setup:
+    - Average: 16 FPS
+    - Coding time: 35 minutes
