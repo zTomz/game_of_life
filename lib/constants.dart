@@ -1,3 +1,4 @@
-const double kCellSize = 25.0;
-const int kCellCount = 10000;
-const int kMaxCellsPerRow = 80;
+const double kCellSize = 12;
+const int kCellCount = kRowCount * kColCount;
+const int kColCount = 60;
+const int kRowCount = 40;

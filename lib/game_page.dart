@@ -17,13 +17,13 @@ class _GamePageState extends State<GamePage> {
   // ignore: prefer_final_fields
   List<Offset> _lastUpdatedOffsets = [];
 
-  // ignore: prefer_final_fields
-  double _zoomFactor = 1.0;
+  bool _panEnabled = false;
+  Offset _panOffset = Offset.zero;
 
   @override
   void initState() {
     super.initState();
-    
+
     initGame();
   }
 
@@ -50,55 +50,57 @@ class _GamePageState extends State<GamePage> {
           FloatingActionButton(
             onPressed: () {
               setState(() {
-                _zoomFactor -= 0.05;
+                _panEnabled = !_panEnabled;
               });
             },
-            child: const Icon(Icons.remove_rounded),
-          ),
-          const SizedBox(width: 10),
-          FloatingActionButton(
-            onPressed: () {
-              setState(() {
-                _zoomFactor += 0.05;
-              });
-            },
-            child: const Icon(Icons.add_rounded),
+            child: Icon(_panEnabled ? Icons.pan_tool : Icons.pan_tool_outlined),
           ),
         ],
       ),
-      body: GestureDetector(
-        onPanDown: (details) {
-          Offset pos = details.localPosition / kCellSize / _zoomFactor;
-          pos = Offset(pos.dx.floorToDouble(), pos.dy.floorToDouble());
+      body: InteractiveViewer(
+        minScale: 0.1,
+        maxScale: 20.0,
+        child: GestureDetector(
+          onPanDown: (details) {
+            if (_panEnabled) return;
 
-          _lastUpdatedOffsets.add(pos);
+            Offset pos = (details.localPosition - _panOffset) / kCellSize;
+            pos = Offset(pos.dx.floorToDouble(), pos.dy.floorToDouble());
 
-          if (!_cells.containsKey(pos)) return;
-          setState(() {
-            _cells[pos] = !_cells[pos]!;
-          });
-        },
-        onPanUpdate: (details) {
-          Offset pos = details.localPosition / kCellSize / _zoomFactor;
-          pos = Offset(pos.dx.floorToDouble(), pos.dy.floorToDouble());
+            if (!_cells.containsKey(pos)) return;
 
-          if (_lastUpdatedOffsets.contains(pos)) {
-            return;
-          }
+            _lastUpdatedOffsets.add(pos);
 
-          _lastUpdatedOffsets.add(pos);
+            setState(() {
+              _cells[pos] = !_cells[pos]!;
+            });
+          },
+          onPanUpdate: (details) {
+            if (_panEnabled) {
+              setState(() {
+                _panOffset += details.delta;
+              });
 
-          if (!_cells.containsKey(pos)) return;
-          setState(() {
-            _cells[pos] = !_cells[pos]!;
-          });
-        },
-        onPanEnd: (_) => _lastUpdatedOffsets.clear(),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ..._buildCells(),
-          ],
+              return;
+            }
+
+            Offset pos = (details.localPosition - _panOffset) / kCellSize;
+            pos = Offset(pos.dx.floorToDouble(), pos.dy.floorToDouble());
+
+            if (_lastUpdatedOffsets.contains(pos)) return;
+            if (!_cells.containsKey(pos)) return;
+
+            _lastUpdatedOffsets.add(pos);
+
+            setState(() {
+              _cells[pos] = !_cells[pos]!;
+            });
+          },
+          onPanEnd: (_) => _lastUpdatedOffsets.clear(),
+          child: Stack(
+            fit: StackFit.expand,
+            children: _buildCells(),
+          ),
         ),
       ),
     );
@@ -111,7 +113,7 @@ class _GamePageState extends State<GamePage> {
       (index) {
         pos = pos.translate(1, 0);
 
-        if (pos.dx > kMaxCellsPerRow - 1) {
+        if (pos.dx > kColCount - 1) {
           pos = Offset(0, pos.dy + 1);
         }
 
@@ -127,6 +129,20 @@ class _GamePageState extends State<GamePage> {
   Future<void> initGame() async {
     _cells = await Isolate.run<Map<Offset, bool>>(() => resetGame());
 
+    // Center the game on the screen
+    if (context.mounted) {
+      // Calculate the size of the cells stack
+      const cellStack = Size(kCellSize * kColCount, kCellSize * kRowCount);
+      // We ignore, because we know that context is mounted, but the analyzer don't
+      // ignore: use_build_context_synchronously
+      final screenSize = MediaQuery.sizeOf(context);
+
+      _panOffset = Offset(
+        (screenSize.width - cellStack.width) / 2,
+        (screenSize.height - cellStack.height) / 2,
+      );
+    }
+
     setState(() {});
   }
 
@@ -137,8 +153,8 @@ class _GamePageState extends State<GamePage> {
       cells.add(
         CellWidget(
           position: cell.key,
+          panOffset: _panOffset,
           alive: cell.value,
-          zoomFactor: _zoomFactor,
         ),
       );
     }

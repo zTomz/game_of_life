@@ -3,14 +3,14 @@ import 'package:game_of_life/constants.dart';
 
 class CellWidget extends StatefulWidget {
   final Offset position;
+  final Offset panOffset;
   final bool alive;
-  final double zoomFactor;
 
   const CellWidget({
     super.key,
     required this.position,
+    required this.panOffset,
     required this.alive,
-    required this.zoomFactor,
   });
 
   @override
@@ -23,24 +23,24 @@ class _CellWidgetState extends State<CellWidget> {
   @override
   Widget build(BuildContext context) {
     return Positioned(
-      top: widget.position.dy * widget.zoomFactor * kCellSize,
-      left: widget.position.dx * widget.zoomFactor * kCellSize,
+      top: widget.position.dy *  kCellSize + widget.panOffset.dy, 
+      left: widget.position.dx * kCellSize + widget.panOffset.dx,
       child: MouseRegion(
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
         child: Container(
-          width: kCellSize * widget.zoomFactor,
-          height: kCellSize * widget.zoomFactor,
+          width: kCellSize,
+          height: kCellSize,
           decoration: BoxDecoration(
             color: widget.alive
                 ? Colors.black
                 : _hovered
                     ? Colors.grey
                     : Colors.transparent,
-            borderRadius: BorderRadius.circular(2 * widget.zoomFactor),
+            borderRadius: BorderRadius.circular(0.75),
             border: Border.all(
               color: Colors.grey,
-              width: 0.75 * widget.zoomFactor,
+              width: 0.15,
             ),
           ),
         ),
